@@ -1,0 +1,284 @@
+Visualization I
+================
+Lectured by Jeff Goldsmith
+2022-09-29
+
+# Prepare the weather dataset
+
+Download the NOAA weather data and make the dataset clean and readable:
+
+``` r
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728", "USC00519397","USS0023B17S"),
+    var = c("PRCP", "TMIN", "TMAX"),
+    date_min = "2017-01-01",
+    date_max = "2017-12-31") %>% 
+  mutate(
+    name = recode(id, USW00094728 = "CentralPark_NY",
+                      USC00519397 = "Waikiki_HA",
+                      USS0023B17S = "Waterhole_WA"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) %>% 
+  select(name, id, everything())
+```
+
+# Basic Scatterplot
+
+``` r
+ggplot(weather_df, aes(x = tmin, y = tmax))
+```
+
+![](Visualization-1_files/figure-gfm/scatterplot%20nothing%20show-1.png)<!-- -->
+
+``` r
+ggplot(weather_df, aes(x = tmin, y = tmax)) + geom_point()
+```
+
+    ## Warning: Removed 15 rows containing missing values (geom_point).
+
+![](Visualization-1_files/figure-gfm/scatterplot%20correct%20way-1.png)<!-- -->
+
+Let’s make the same scatterplot, but different
+
+``` r
+weather_df %>% 
+  drop_na() %>% 
+  ggplot(aes(x = tmin, y = tmax)) + geom_point()
+```
+
+![](Visualization-1_files/figure-gfm/remove%20missing%20values-1.png)<!-- -->
+
+Let’s keep making the same plot but different
+
+``` r
+weather_scatterplot = weather_df %>% 
+  drop_na() %>% 
+  ggplot(aes(x = tmin, y= tmax))
+
+weather_scatterplot + geom_point()
+```
+
+![](Visualization-1_files/figure-gfm/unnamed-chunk-1-1.png)<!-- -->
+
+Let’s fancy this up a little bit
+
+``` r
+weather_df %>% 
+  ggplot(aes(x = tmin, y = tmax, color = name)) + geom_point()
+```
+
+    ## Warning: Removed 15 rows containing missing values (geom_point).
+
+![](Visualization-1_files/figure-gfm/color%20points%20by%20variable-1.png)<!-- -->
+
+``` r
+# Can also do this
+weather_df %>% 
+  ggplot(aes(x = tmin, y = tmax)) + geom_point(aes(color = name)) + geom_smooth()
+```
+
+    ## `geom_smooth()` using method = 'gam' and formula 'y ~ s(x, bs = "cs")'
+
+    ## Warning: Removed 15 rows containing non-finite values (stat_smooth).
+    ## Removed 15 rows containing missing values (geom_point).
+
+![](Visualization-1_files/figure-gfm/color%20points%20by%20variable-2.png)<!-- -->
+
+``` r
+# But only show 1 blue line because we put the aesthetic color = name in geom_point.
+
+# If put the aesthetic color in the ggplot with x, y will show three lines
+weather_df %>% 
+  ggplot(aes(x = tmin, y = tmax, color = name)) + geom_point() + geom_smooth()
+```
+
+    ## `geom_smooth()` using method = 'loess' and formula 'y ~ x'
+
+    ## Warning: Removed 15 rows containing non-finite values (stat_smooth).
+    ## Removed 15 rows containing missing values (geom_point).
+
+![](Visualization-1_files/figure-gfm/color%20points%20by%20variable-3.png)<!-- -->
+
+``` r
+# Why do this???
+weather_df %>% 
+  ggplot(aes(x = tmin, y = tmax, color = name)) + 
+  geom_point(alpha = 0.3) + 
+  geom_smooth(se = FALSE)
+```
+
+    ## `geom_smooth()` using method = 'loess' and formula 'y ~ x'
+
+    ## Warning: Removed 15 rows containing non-finite values (stat_smooth).
+    ## Removed 15 rows containing missing values (geom_point).
+
+![](Visualization-1_files/figure-gfm/color%20points%20by%20variable-4.png)<!-- -->
+
+Maybe make separate panels: Make the same plot but separate by variables
+`facet_grid`
+
+``` r
+weather_df %>% 
+  ggplot(aes(x = tmin, y = tmax, color = name)) + 
+  geom_point(alpha = 0.3) + 
+  geom_smooth(se = FALSE) +
+  facet_grid(. ~ name)
+```
+
+    ## `geom_smooth()` using method = 'loess' and formula 'y ~ x'
+
+    ## Warning: Removed 15 rows containing non-finite values (stat_smooth).
+
+    ## Warning: Removed 15 rows containing missing values (geom_point).
+
+![](Visualization-1_files/figure-gfm/facet-1.png)<!-- -->
+
+``` r
+# If do facet_grid(name ~ .) will show horizontal graph instead of vertical.
+```
+
+`tmax` vs `tmin` is boring, let’s spice it up some.
+
+``` r
+weather_df %>% 
+  ggplot(aes(x = date, y = tmax, color = name)) + 
+  geom_point(aes(size = prcp), alpha = .3) +
+  geom_smooth(se = FALSE) +
+  facet_grid(. ~ name)
+```
+
+    ## `geom_smooth()` using method = 'loess' and formula 'y ~ x'
+
+    ## Warning: Removed 3 rows containing non-finite values (stat_smooth).
+
+    ## Warning: Removed 3 rows containing missing values (geom_point).
+
+![](Visualization-1_files/figure-gfm/add%20more%20variables-1.png)<!-- -->
+
+## Some quick stuff
+
+``` r
+weather_df %>% 
+  ggplot(aes(x = tmin, y = tmax)) +
+  geom_hex()
+```
+
+    ## Warning: Removed 15 rows containing non-finite values (stat_binhex).
+
+![](Visualization-1_files/figure-gfm/if%20we%20have%20tons%20of%20rows-1.png)<!-- -->
+
+# Univariate plots
+
+Histograms, barplots, boxplots, violins, …
+
+##### Histogram
+
+``` r
+weather_df %>% 
+  ggplot(aes(x = tmax, fill = name)) +   
+  geom_histogram() +
+  facet_grid(. ~ name)
+```
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+
+    ## Warning: Removed 3 rows containing non-finite values (stat_bin).
+
+![](Visualization-1_files/figure-gfm/histogram-1.png)<!-- -->
+
+``` r
+# If put color = name, the color will only show on the outer line, not the entire columns.
+```
+
+##### Density plot
+
+``` r
+weather_df %>% 
+  ggplot(aes(x = tmax, fill = name )) +
+  geom_density(alpha = .3)
+```
+
+    ## Warning: Removed 3 rows containing non-finite values (stat_density).
+
+![](Visualization-1_files/figure-gfm/density%20line-1.png)<!-- -->
+
+``` r
+# If use color = name will only show color line; If use fill = name will fill the entire under line, so do alpha = .3 to make the color more transparent.
+```
+
+##### Boxplot
+
+``` r
+weather_df %>% 
+  ggplot(aes(x = name, y = tmax, fill = name)) +
+  geom_boxplot()
+```
+
+    ## Warning: Removed 3 rows containing non-finite values (stat_boxplot).
+
+![](Visualization-1_files/figure-gfm/boxplot-1.png)<!-- -->
+
+###### Violin plot
+
+``` r
+weather_df %>% 
+  ggplot(aes(x = name, y = tmax, fill = name)) +
+  geom_violin()
+```
+
+    ## Warning: Removed 3 rows containing non-finite values (stat_ydensity).
+
+![](Visualization-1_files/figure-gfm/violin-1.png)<!-- -->
+
+##### Density ridges
+
+``` r
+weather_df %>% 
+  ggplot(aes(x = tmax, y = name)) +
+  geom_density_ridges()
+```
+
+    ## Picking joint bandwidth of 1.84
+
+    ## Warning: Removed 3 rows containing non-finite values (stat_density_ridges).
+
+![](Visualization-1_files/figure-gfm/density%20ridges-1.png)<!-- -->
+
+``` r
+# ridges show density plot by stacking them next to each other instead of overlapping all of them in one stack.
+```
+
+# Saving and embedding plots
+
+First, let’s save a plot.
+
+``` r
+weather_scatterplot = weather_df %>% 
+  ggplot(aes(x = date, y = tmax, color = name, size = prcp)) +
+  geom_point(alpha = .3) +
+  geom_smooth(se = FALSE) +
+  facet_grid(. ~ name)
+
+weather_scatterplot
+```
+
+    ## `geom_smooth()` using method = 'loess' and formula 'y ~ x'
+
+    ## Warning: Removed 3 rows containing non-finite values (stat_smooth).
+
+    ## Warning: Removed 3 rows containing missing values (geom_point).
+
+![](Visualization-1_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
+
+``` r
+ggsave(
+  file = "results/weather_scatterplot.pdf", 
+  plot = weather_scatterplot,
+  width = 12, height = 10)
+```
+
+    ## `geom_smooth()` using method = 'loess' and formula 'y ~ x'
+
+    ## Warning: Removed 3 rows containing non-finite values (stat_smooth).
+    ## Removed 3 rows containing missing values (geom_point).
