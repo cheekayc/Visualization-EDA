@@ -127,4 +127,74 @@ scale_fill_discrete = scale_fill_viridis_d
 ```
 
 
-# 
+# Data in geom()
+
+```{r}
+central_park = 
+  weather_df %>% 
+  filter(name == "CentralPark_NY")
+
+waikiki = 
+  weather_df %>% 
+  filter(name == "Waikiki_HA")
+
+ggplot(waikiki, aes(x = date, y = tmax)) +
+  geom_point() +
+  geom_line(data = central_park)
+```
+
+# Patchwork
+
+```{r}
+tmax_tmin = 
+  weather_df %>% 
+  ggplot(aes(x = tmin, y = tmax, color = name)) +
+  geom_point()
+
+prcp_density =
+  weather_df %>% 
+  filter(prcp > 0) %>% 
+  ggplot(aes(x = prcp, fill = name)) +
+  geom_density(alpha = 0.5)
+```
+
+# Data Manipulation
+
+In order to put something on a plot, a variable has to be a factor vector. let's say `name` is character variable, but when we plot, R will change it to factor variable during the plotting process.
+```{r}
+weather_df %>% 
+  ggplot(aes(x = name, y = tmax)) +
+  geom_boxplot()
+```
+
+```{r}
+weather_df %>% 
+  mutate(name = fct_reorder(name, tmax)) %>%  # reordering "names" by which has the lowest tmax comes first.
+  ggplot(aes(x = name, y = tmax)) +
+  geom_boxplot()
+```
+
+```{r}
+pulse_df =
+  haven::read_sas("Data/public_pulse_data.sas7bdat")  %>% 
+  janitor::clean_names() %>% 
+  pivot_longer(
+    bdi_score_bl:bdi_score_12m,
+    names_to = "visit", 
+    names_prefix = "bdi_score_",
+    values_to = "bdi") %>%
+  select(id, visit, everything()) %>%
+  mutate(
+    visit = recode(visit, "bl" = "00m"),
+    visit = factor(visit, levels = str_c(c("00", "01", "06", "12"), "m"))) %>%
+  arrange(id, visit)
+# another way to do this:
+# mutate(
+#   visit = fct_relevel(visit, "bl"))
+ggplot(pulse_df, aes(x = visit, y = bdi)) + 
+  geom_boxplot()
+```
+
+
+
+
