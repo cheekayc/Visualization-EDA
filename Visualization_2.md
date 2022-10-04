@@ -108,3 +108,61 @@ weather_df %>%
     ## Warning: Removed 15 rows containing missing values (geom_point).
 
 ![](Visualization_2_files/figure-gfm/viridis%20color-1.png)<!-- -->
+
+# Themes
+
+``` r
+ggp_weather = 
+  weather_df %>% 
+  ggplot(aes(x = tmin, y = tmax, color = name)) + 
+  geom_point(alpha = .5) +
+  labs(
+    x = "Minimum Daily Temp (C)",
+    y = "Maximum Daily Temp (C)",
+    title = "Scatterplot of daily temp extremes",
+    caption = "Data come from the rnoaa package") +
+  viridis::scale_color_viridis(     # This color pallate is good.
+    name = "Location",   # changed the variable "name" to "Location".
+    discrete = TRUE)
+```
+
+``` r
+ggp_weather + 
+  theme_bw() + # change how the background grid looks like. Try _classic, _minimal, etc.
+  theme(legend.position = "bottom")  # change legend position to bottom.
+```
+
+    ## Warning: Removed 15 rows containing missing values (geom_point).
+
+![](Visualization_2_files/figure-gfm/legend%20position-1.png)<!-- -->
+
+``` r
+# Must change grid theme first, then legend position later. Otherwise, theme position would not change.
+```
+
+# Setting how my plots will look.
+
+Set these options at the beginning of your document, so you don’t have
+to write the same code over and over again in every single code chunk.
+
+``` r
+library(tidyverse)
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+```
+
+# 
