@@ -17,7 +17,7 @@ weather_df =
     c("USW00094728", "USC00519397", "USS0023B17S"),
     var = c("PRCP", "TMIN", "TMAX"), 
     date_min = "2017-01-01",
-    date_max = "2017-12-31") %>%
+    date_max = "2017-12-31") %>% 
   mutate(
     name = recode(
       id, 
@@ -25,14 +25,14 @@ weather_df =
       USC00519397 = "Waikiki_HA",
       USS0023B17S = "Waterhole_WA"),
     tmin = tmin / 10,
-    tmax = tmax / 10) %>%
+    tmax = tmax / 10) %>% 
   select(name, id, everything())
 ```
 
-# Scatterplot
+# Labels and Scales 
 
-But better this time
-
+We can make scatterplots and label the plots with axis labels, plot titles, and captions using the `labs()` function.
+We can also adjust the scales, including their positions.
 ```{r plot 1}
 weather_df %>% 
   ggplot(aes(x = tmin, y = tmax, color = name)) + 
@@ -46,10 +46,12 @@ weather_df %>%
     breaks = c(-10, 0, 15),    # can adjust how your scale looks like.
     labels = c("-10C", "0C", "15C")) +  # label your scale.
   scale_y_continuous(
-    trans = "sqrt", 
-    position = "right")
+    trans = "sqrt",       # transform the variable by the function of square root.
+    position = "right")   # place the y-scale on the right side of the plot.
 ```
-`labs()` function is labelling the plots.
+There are many other ways to play around with the plot. For instance, `scale_y_sqrt()` can be added to a ggplot object to transform the Y scale, and `xlim()` can be used to control the plot limits in the X axis.
+
+# Color Scheme
 
 ```{r plot 2}
 weather_df %>% 
