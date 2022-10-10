@@ -53,6 +53,7 @@ There are many other ways to play around with the plot. For instance, `scale_y_s
 
 # Color Scheme
 
+`scale_color_hue()` control the color scale and the name in the plot legend. But creating your own color scheme usually doesn’t go well - can be very ugly.
 ```{r plot 2}
 weather_df %>% 
   ggplot(aes(x = tmin, y = tmax, color = name)) + 
@@ -67,6 +68,7 @@ weather_df %>%
     h = c(100, 300))  # Not encourage to do this. Color is very ugly.
 ```
 
+`viridis` package is better.
 ```{r viridis color}
 weather_df %>% 
   ggplot(aes(x = tmin, y = tmax, color = name)) + 
@@ -76,14 +78,18 @@ weather_df %>%
     y = "Maximum Daily Temp (C)",
     title = "Scatterplot of daily temp extremes",
     caption = "Data come from the rnoaa package") +
-  viridis::scale_color_viridis(     # This color pallate is good.
+  viridis::scale_color_viridis(     # This color palate is good.
     name = "Location",   # changed the variable "name" to "Location".
     discrete = TRUE)
 ```
+##### We used `discrete = TRUE` because the color aesthetic is mapped to a discrete variable. In other cases (for example, when color mapped to `prcp`) you can omit this argument to get a continuous color gradient. The `viridis::scale_fill_viridis()` function is appropriate for the fill aesthetic used in histograms, density plots, and elsewhere.
+
 
 # Themes
 
-```{r create a data}
+Themes are used to modify non-data elements of a plot – they don’t change mappings or how data are render, but control things like background color and location of the the legend.
+
+```{r create a dataset first}
 ggp_weather = 
   weather_df %>% 
   ggplot(aes(x = tmin, y = tmax, color = name)) + 
@@ -93,10 +99,14 @@ ggp_weather =
     y = "Maximum Daily Temp (C)",
     title = "Scatterplot of daily temp extremes",
     caption = "Data come from the rnoaa package") +
-  viridis::scale_color_viridis(     # This color pallate is good.
-    name = "Location",   # changed the variable "name" to "Location".
+  viridis::scale_color_viridis(     
+    name = "Location",   
     discrete = TRUE)
 ```
+
+* Change background grid: `theme_` "bw", "classic", "minimal" and many more.
+
+* Change legend position: `theme(legend.position = "top/bottom/left") *Right is default*.
 
 ```{r legend position}
 ggp_weather + 
@@ -104,8 +114,27 @@ ggp_weather +
   theme(legend.position = "bottom")  # change legend position to bottom.
 # Must change grid theme first, then legend position later. Otherwise, theme position would not change.
 ```
+Must change grid theme first, then change other theme features later. Otherwise, theme position would not change.
 
-# Setting how my plots will look.
+# Learning Assessment 1
+
+Revisit the plot showing tmax against date for each location. Use labels, scale options, and theme changes to improve the readability of this plot.
+
+```{r LA1}
+ggplot(weather_df, aes(x = date, y = tmax, color = name)) +
+  geom_smooth(se = FALSE) +   # se = FALSE means don't display CI around smooth line.
+  geom_point(aes(size = prcp), alpha = 0.5) +  
+  labs(
+    title = "Temperature and precipitation plot",
+    x = "Date",
+    y = "Maximum daily temperature (C)",
+    caption = "Data from the rnoaa package") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+
+# Setting options
 
 Set these options at the beginning of your document, so you don't have to write the same code over and over again in every single code chunk.
 ```{r setup at very beginning, eval = FALSE}
@@ -114,24 +143,23 @@ library(tidyverse)
 knitr::opts_chunk$set(
   fig.width = 6,
   fig.asp = .6,
-  out.width = "90%"
-)
+  out.width = "90%")
 
 theme_set(theme_minimal() + theme(legend.position = "bottom"))
 
 options(
   ggplot2.continuous.colour = "viridis",
-  ggplot2.continuous.fill = "viridis"
-)
+  ggplot2.continuous.fill = "viridis")
 
 scale_colour_discrete = scale_colour_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
 ```
 
 
-# Data in geom()
+# Data argument in `geom()`
 
-```{r}
+We can split weather_df into separate datasets for Central Park and Waikiki. Then we use one in ggplot() and another in geom_line():
+```{r two datasets on one plot}
 central_park = 
   weather_df %>% 
   filter(name == "CentralPark_NY")
@@ -140,43 +168,86 @@ waikiki =
   weather_df %>% 
   filter(name == "Waikiki_HA")
 
-ggplot(waikiki, aes(x = date, y = tmax)) +
+ggplot(waikiki, aes(x = date, y = tmax, color = name)) +
   geom_point() +
   geom_line(data = central_park)
 ```
 
 # Patchwork
 
+We can display several plots on the same page (must load `patchwork` package at the beginning):
 ```{r}
-tmax_tmin = 
+tmax_tmin_p = 
   weather_df %>% 
-  ggplot(aes(x = tmin, y = tmax, color = name)) +
-  geom_point()
+  ggplot(aes(x = tmax, y = tmin, color = name)) + 
+  geom_point(alpha = .5) +
+  theme(legend.position = "none")
 
-prcp_density =
+prcp_dens_p = 
   weather_df %>% 
   filter(prcp > 0) %>% 
-  ggplot(aes(x = prcp, fill = name)) +
-  geom_density(alpha = 0.5)
+  ggplot(aes(x = prcp, fill = name)) + 
+  geom_density(alpha = .5) + 
+  theme(legend.position = "none")
+
+tmax_date_p = 
+  weather_df %>% 
+  ggplot(aes(x = date, y = tmax, color = name)) + 
+  geom_point(alpha = .5) +
+  geom_smooth(se = FALSE) + 
+  theme(legend.position = "bottom")
+
+(tmax_tmin_p + prcp_dens_p) / tmax_date_p
 ```
+
 
 # Data Manipulation
 
 In order to put something on a plot, a variable has to be a factor vector. let's say `name` is character variable, but when we plot, R will change it to factor variable during the plotting process.
-```{r}
+
+```{r original order}
 weather_df %>% 
   ggplot(aes(x = name, y = tmax)) +
   geom_boxplot()
 ```
+As we can see in the plot, "Central Park" goes first, then "Waikiki", lastly "Waterhole"
 
-```{r}
+
+```{r reorder by other variable}
 weather_df %>% 
-  mutate(name = fct_reorder(name, tmax)) %>%  # reordering "names" by which has the lowest tmax comes first.
+  mutate(name = fct_reorder(name, tmax)) %>%  # reordering "names" by whichever has the lowest tmax comes first.
   ggplot(aes(x = name, y = tmax)) +
   geom_boxplot()
 ```
 
-```{r}
+Categorical variables will be ordered alphabetically; factors will follow the specified order level that underlies the variable labels. You can change the order level of a factor variable to your specified preference using `forcats::fct_relevel` or according to the value of another variable using `forcats::fct_reorder`.
+
+This way of reordering need to type out all "names" in the order that you want:
+```{r relevel by hand}
+weather_df %>%
+  mutate(name = fct_relevel(name, c("Waikiki_HA", "CentralPark_NY", "Waterhole_WA"))) %>%  # Don't write 'forcats::' is fine.
+  ggplot(aes(x = name, y = tmax)) + 
+  geom_violin(aes(fill = name), color = "blue", alpha = .5) + 
+  theme(legend.position = "bottom")
+```
+
+
+How to create a plot that has common x- and -y-axis shared by three different locations?
+```{r shared axis}
+weather_df %>%
+  select(name, tmax, tmin) %>% 
+  pivot_longer(
+    tmax:tmin,
+    names_to = "observation", 
+    values_to = "temp") %>% 
+  ggplot(aes(x = temp, fill = observation)) +
+  geom_density(alpha = .5) + 
+  facet_grid(~name) +    # facet_grid(name ~ .) will show horizontal graph instead of vertical.
+  viridis::scale_fill_viridis(discrete = TRUE)
+```
+
+Practice using `pulse dataset`:
+```{r pulse}
 pulse_df =
   haven::read_sas("Data/public_pulse_data.sas7bdat")  %>% 
   janitor::clean_names() %>% 

@@ -9,7 +9,7 @@ weather_df =
     c("USW00094728", "USC00519397", "USS0023B17S"),
     var = c("PRCP", "TMIN", "TMAX"), 
     date_min = "2017-01-01",
-    date_max = "2017-12-31") %>%
+    date_max = "2017-12-31") %>% 
   mutate(
     name = recode(
       id, 
@@ -17,7 +17,7 @@ weather_df =
       USC00519397 = "Waikiki_HA",
       USS0023B17S = "Waterhole_WA"),
     tmin = tmin / 10,
-    tmax = tmax / 10) %>%
+    tmax = tmax / 10) %>% 
   select(name, id, everything())
 ```
 
@@ -25,27 +25,29 @@ weather_df =
     ##   method           from
     ##   print.cache_info httr
 
-    ## using cached file: ~/Library/Caches/R/noaa_ghcnd/USW00094728.dly
+    ## using cached file: C:\Users\CHUCHU~1\AppData\Local/Cache/R/noaa_ghcnd/USW00094728.dly
 
-    ## date created (size, mb): 2022-09-29 10:29:25 (8.401)
+    ## date created (size, mb): 2022-10-09 18:01:39 (8.428)
 
-    ## file min/max dates: 1869-01-01 / 2022-09-30
+    ## file min/max dates: 1869-01-01 / 2022-10-31
 
-    ## using cached file: ~/Library/Caches/R/noaa_ghcnd/USC00519397.dly
+    ## using cached file: C:\Users\CHUCHU~1\AppData\Local/Cache/R/noaa_ghcnd/USC00519397.dly
 
-    ## date created (size, mb): 2022-09-29 10:29:32 (1.699)
+    ## date created (size, mb): 2022-10-09 18:01:46 (1.703)
 
     ## file min/max dates: 1965-01-01 / 2020-03-31
 
-    ## using cached file: ~/Library/Caches/R/noaa_ghcnd/USS0023B17S.dly
+    ## using cached file: C:\Users\CHUCHU~1\AppData\Local/Cache/R/noaa_ghcnd/USS0023B17S.dly
 
-    ## date created (size, mb): 2022-09-29 10:29:35 (0.95)
+    ## date created (size, mb): 2022-10-09 18:01:50 (0.954)
 
-    ## file min/max dates: 1999-09-01 / 2022-09-30
+    ## file min/max dates: 1999-09-01 / 2022-10-31
 
-# Scatterplot
+# Labels and Scales
 
-But better this time
+We can make scatterplots and label the plots with axis labels, plot
+titles, and captions using the `labs()` function. We can also adjust the
+scales, including their positions.
 
 ``` r
 weather_df %>% 
@@ -60,18 +62,27 @@ weather_df %>%
     breaks = c(-10, 0, 15),    # can adjust how your scale looks like.
     labels = c("-10C", "0C", "15C")) +  # label your scale.
   scale_y_continuous(
-    trans = "sqrt", 
-    position = "right")
+    trans = "sqrt",       # transform the variable by the function of square root.
+    position = "right")   # place the y-scale on the right side of the plot.
 ```
 
-    ## Warning in self$trans$transform(x): NaNs produced
+    ## Warning in self$trans$transform(x): 产生了NaNs
 
     ## Warning: Transformation introduced infinite values in continuous y-axis
 
     ## Warning: Removed 90 rows containing missing values (geom_point).
 
-![](Visualization_2_files/figure-gfm/plot%201-1.png)<!-- --> `labs()`
-function is labelling the plots.
+![](Visualization_2_files/figure-gfm/plot%201-1.png)<!-- --> There are
+many other ways to play around with the plot. For instance,
+`scale_y_sqrt()` can be added to a ggplot object to transform the Y
+scale, and `xlim()` can be used to control the plot limits in the X
+axis.
+
+# Color Scheme
+
+`scale_color_hue()` control the color scale and the name in the plot
+legend. But creating your own color scheme usually doesn’t go well - can
+be very ugly.
 
 ``` r
 weather_df %>% 
@@ -91,6 +102,8 @@ weather_df %>%
 
 ![](Visualization_2_files/figure-gfm/plot%202-1.png)<!-- -->
 
+`viridis` package is better.
+
 ``` r
 weather_df %>% 
   ggplot(aes(x = tmin, y = tmax, color = name)) + 
@@ -100,7 +113,7 @@ weather_df %>%
     y = "Maximum Daily Temp (C)",
     title = "Scatterplot of daily temp extremes",
     caption = "Data come from the rnoaa package") +
-  viridis::scale_color_viridis(     # This color pallate is good.
+  viridis::scale_color_viridis(     # This color palate is good.
     name = "Location",   # changed the variable "name" to "Location".
     discrete = TRUE)
 ```
@@ -108,8 +121,17 @@ weather_df %>%
     ## Warning: Removed 15 rows containing missing values (geom_point).
 
 ![](Visualization_2_files/figure-gfm/viridis%20color-1.png)<!-- -->
+\##### We used `discrete = TRUE` because the color aesthetic is mapped
+to a discrete variable. In other cases (for example, when color mapped
+to `prcp`) you can omit this argument to get a continuous color
+gradient. The `viridis::scale_fill_viridis()` function is appropriate
+for the fill aesthetic used in histograms, density plots, and elsewhere.
 
 # Themes
+
+Themes are used to modify non-data elements of a plot – they don’t
+change mappings or how data are render, but control things like
+background color and location of the the legend.
 
 ``` r
 ggp_weather = 
@@ -121,10 +143,16 @@ ggp_weather =
     y = "Maximum Daily Temp (C)",
     title = "Scatterplot of daily temp extremes",
     caption = "Data come from the rnoaa package") +
-  viridis::scale_color_viridis(     # This color pallate is good.
-    name = "Location",   # changed the variable "name" to "Location".
+  viridis::scale_color_viridis(     
+    name = "Location",   
     discrete = TRUE)
 ```
+
+-   Change background grid: `theme_` “bw”, “classic”, “minimal” and many
+    more.
+
+-   Change legend position: \`theme(legend.position = “top/bottom/left”)
+    *Right is default*.
 
 ``` r
 ggp_weather + 
@@ -140,7 +168,37 @@ ggp_weather +
 # Must change grid theme first, then legend position later. Otherwise, theme position would not change.
 ```
 
-# Setting how my plots will look.
+Must change grid theme first, then change other theme features later.
+Otherwise, theme position would not change.
+
+# Learning Assessment 1
+
+Revisit the plot showing tmax against date for each location. Use
+labels, scale options, and theme changes to improve the readability of
+this plot.
+
+``` r
+ggplot(weather_df, aes(x = date, y = tmax, color = name)) +
+  geom_smooth(se = FALSE) +   # se = FALSE means don't display CI around smooth line.
+  geom_point(aes(size = prcp), alpha = 0.5) +  
+  labs(
+    title = "Temperature and precipitation plot",
+    x = "Date",
+    y = "Maximum daily temperature (C)",
+    caption = "Data from the rnoaa package") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+    ## `geom_smooth()` using method = 'loess' and formula 'y ~ x'
+
+    ## Warning: Removed 3 rows containing non-finite values (stat_smooth).
+
+    ## Warning: Removed 3 rows containing missing values (geom_point).
+
+![](Visualization_2_files/figure-gfm/LA1-1.png)<!-- -->
+
+# Setting options
 
 Set these options at the beginning of your document, so you don’t have
 to write the same code over and over again in every single code chunk.
@@ -151,21 +209,22 @@ library(tidyverse)
 knitr::opts_chunk$set(
   fig.width = 6,
   fig.asp = .6,
-  out.width = "90%"
-)
+  out.width = "90%")
 
 theme_set(theme_minimal() + theme(legend.position = "bottom"))
 
 options(
   ggplot2.continuous.colour = "viridis",
-  ggplot2.continuous.fill = "viridis"
-)
+  ggplot2.continuous.fill = "viridis")
 
 scale_colour_discrete = scale_colour_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
 ```
 
-# Data in geom()
+# Data argument in `geom()`
+
+We can split weather_df into separate datasets for Central Park and
+Waikiki. Then we use one in ggplot() and another in geom_line():
 
 ``` r
 central_park = 
@@ -176,29 +235,53 @@ waikiki =
   weather_df %>% 
   filter(name == "Waikiki_HA")
 
-ggplot(waikiki, aes(x = date, y = tmax)) +
+ggplot(waikiki, aes(x = date, y = tmax, color = name)) +
   geom_point() +
   geom_line(data = central_park)
 ```
 
     ## Warning: Removed 3 rows containing missing values (geom_point).
 
-![](Visualization_2_files/figure-gfm/unnamed-chunk-1-1.png)<!-- -->
+![](Visualization_2_files/figure-gfm/two%20datasets%20on%20one%20plot-1.png)<!-- -->
 
 # Patchwork
 
-``` r
-tmax_tmin = 
-  weather_df %>% 
-  ggplot(aes(x = tmin, y = tmax, color = name)) +
-  geom_point()
+We can display several plots on the same page (must load `patchwork`
+package at the beginning):
 
-prcp_density =
+``` r
+tmax_tmin_p = 
+  weather_df %>% 
+  ggplot(aes(x = tmax, y = tmin, color = name)) + 
+  geom_point(alpha = .5) +
+  theme(legend.position = "none")
+
+prcp_dens_p = 
   weather_df %>% 
   filter(prcp > 0) %>% 
-  ggplot(aes(x = prcp, fill = name)) +
-  geom_density(alpha = 0.5)
+  ggplot(aes(x = prcp, fill = name)) + 
+  geom_density(alpha = .5) + 
+  theme(legend.position = "none")
+
+tmax_date_p = 
+  weather_df %>% 
+  ggplot(aes(x = date, y = tmax, color = name)) + 
+  geom_point(alpha = .5) +
+  geom_smooth(se = FALSE) + 
+  theme(legend.position = "bottom")
+
+(tmax_tmin_p + prcp_dens_p) / tmax_date_p
 ```
+
+    ## Warning: Removed 15 rows containing missing values (geom_point).
+
+    ## `geom_smooth()` using method = 'loess' and formula 'y ~ x'
+
+    ## Warning: Removed 3 rows containing non-finite values (stat_smooth).
+
+    ## Warning: Removed 3 rows containing missing values (geom_point).
+
+![](Visualization_2_files/figure-gfm/unnamed-chunk-1-1.png)<!-- -->
 
 # Data Manipulation
 
@@ -214,18 +297,63 @@ weather_df %>%
 
     ## Warning: Removed 3 rows containing non-finite values (stat_boxplot).
 
-![](Visualization_2_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
+![](Visualization_2_files/figure-gfm/original%20order-1.png)<!-- --> As
+we can see in the plot, “Central Park” goes first, then “Waikiki”,
+lastly “Waterhole”
 
 ``` r
 weather_df %>% 
-  mutate(name = fct_reorder(name, tmax)) %>%  # reordering "names" by which has the lowest tmax comes first.
+  mutate(name = fct_reorder(name, tmax)) %>%  # reordering "names" by whichever has the lowest tmax comes first.
   ggplot(aes(x = name, y = tmax)) +
   geom_boxplot()
 ```
 
     ## Warning: Removed 3 rows containing non-finite values (stat_boxplot).
 
-![](Visualization_2_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+![](Visualization_2_files/figure-gfm/reorder%20by%20other%20variable-1.png)<!-- -->
+
+Categorical variables will be ordered alphabetically; factors will
+follow the specified order level that underlies the variable labels. You
+can change the order level of a factor variable to your specified
+preference using `forcats::fct_relevel` or according to the value of
+another variable using `forcats::fct_reorder`.
+
+This way of reordering need to type out all “names” in the order that
+you want:
+
+``` r
+weather_df %>%
+  mutate(name = fct_relevel(name, c("Waikiki_HA", "CentralPark_NY", "Waterhole_WA"))) %>%  # Don't write 'forcats::' is fine.
+  ggplot(aes(x = name, y = tmax)) + 
+  geom_violin(aes(fill = name), color = "blue", alpha = .5) + 
+  theme(legend.position = "bottom")
+```
+
+    ## Warning: Removed 3 rows containing non-finite values (stat_ydensity).
+
+![](Visualization_2_files/figure-gfm/relevel%20by%20hand-1.png)<!-- -->
+
+How to create a plot that has common x- and -y-axis shared by three
+different locations?
+
+``` r
+weather_df %>%
+  select(name, tmax, tmin) %>% 
+  pivot_longer(
+    tmax:tmin,
+    names_to = "observation", 
+    values_to = "temp") %>% 
+  ggplot(aes(x = temp, fill = observation)) +
+  geom_density(alpha = .5) + 
+  facet_grid(~name) +    # facet_grid(name ~ .) will show horizontal graph instead of vertical.
+  viridis::scale_fill_viridis(discrete = TRUE)
+```
+
+    ## Warning: Removed 18 rows containing non-finite values (stat_density).
+
+![](Visualization_2_files/figure-gfm/shared%20axis-1.png)<!-- -->
+
+Practice using `pulse dataset`:
 
 ``` r
 pulse_df =
@@ -250,4 +378,4 @@ ggplot(pulse_df, aes(x = visit, y = bdi)) +
 
     ## Warning: Removed 879 rows containing non-finite values (stat_boxplot).
 
-![](Visualization_2_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+![](Visualization_2_files/figure-gfm/pulse-1.png)<!-- -->
