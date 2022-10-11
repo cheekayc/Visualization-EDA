@@ -9,9 +9,11 @@ output: github_document
 library(tidyverse)
 ```
 
+We are still using the `weather_df` from rnoaa website, but this time we would add a `month` variable using `lubridate::floor_date()`.
 
+In the original `weather_df`, we can see that the dates start from 2017-01-01, 2017-01-02, and so on... Let's see how the `floor_date()` function would make a difference on dates.
 
-```{r}
+```{r modify dates}
 weather_df =  
   rnoaa::meteo_pull_monitors(
     c("USW00094728", "USC00519397", "USS0023B17S"),
@@ -26,61 +28,83 @@ weather_df =
       USS0023B17S = "Waterhole_WA"),
     tmin = tmin / 10,
     tmax = tmax / 10,
-    month = lubridate::floor_date(date, unit = "month")) %>%
+    month = lubridate::floor_date(date, unit = "month")) %>%   # All the dates will become 01-01, 02-01, and so on.
   select(name, id, everything())
 ```
 
+
 # `group_by`
 
+Display dataset by groups:
 ```{r}
 weather_df %>%
   group_by(name, month)
 ```
+We can also remove grouping by `ungroup()`.
+
 
 # Counting things
+
+Use `summarize` to create one-number summaries within each group, or use `mutate` to define variables within groups.
 
 Group by & summarize:
 ```{r group one var}
 weather_df %>%
-  group_by(month) %>%
+  group_by(month) %>%       # Group by "month"
   summarize(
-    n_obs = n())
+    n_obs = n())           # tell me how many obs are in each month.
+# We can see there is 93 obs for Jan 2017, 84 obs for Feb 2017, and so on...
 
-# can also do:
-weather_df %>% 
-  count(name, month)
+
 ```
+The code chunk above counts the number of observations in each month in the complete `weather_df` dataset.
+ 
 
+Group by more than one variable:
 ```{r group more than one var}
 weather_df %>%
   group_by(name, month) %>%
   summarize(
     n_obs = n())
-```
 
-```{r}
+# can also do:
+weather_df %>% 
+  count(name, month) # count() also work as group_by() -> summarize().
+
+# Both output shows there is 31 obs in Jan 2017 in Central Park, and so on...
+```
+The above code chunk counts the number of observations in each month and in a specific location.
+
+We can compute multiple summaries within each group. For example, we can count the number of observations in each month and the number of distinct values of date in each month.
+```{r group and distinct value}
 weather_df %>%
   group_by(month) %>%
   summarize(
     n_obs = n(),
     n_days = n_distinct(date))
+
+# The output shows us that there are 93 obs and 31 distinct days in Jan 2017.
 ```
+
 
 # 2x2 table
 
-```{r}
+Let’s say we want to look at the number of cold and not-cold days in Central Park and Waterhole. We can do this with some extra data manipulation steps and `group_by()` + `summarize()`:
+```{r R style 2x2 table}
 weather_df %>% 
   mutate(
-    cold = case_when(
-      tmax <  5 ~ "cold",
+    cold = case_when(         # case_when = if
+      tmax <  5 ~ "cold",     
       tmax >= 5 ~ "not_cold",
-      TRUE      ~ ""
+      TRUE      ~ ""  # just in case there may be missing values, make them "TRUE" so R can compute w/o error.
   )) %>% 
   filter(name != "Waikiki_HA") %>% 
   group_by(name, cold) %>% 
-  summarize(count = n())
+  summarize(count = n())  # count how many obs in each of the cold and not cold for different location.
 ```
+Note that this table is not like the 2x2 table that we are familiar with.
 
+The code chunk below will create a standard 2x2 table that we are familiar with (but it is not tidy for R to do other things): 
 ```{r standard non tidy table}
 weather_df %>% 
   mutate(cold = case_when(
@@ -89,9 +113,9 @@ weather_df %>%
     TRUE     ~ ""
   )) %>% 
   filter(name != "Waikiki_HA") %>% 
-  janitor::tabyl(name, cold)
+  janitor::tabyl(name, cold) # This tabyl function will create a standard 2x2 table.
 
-# can also use pivot_wider:
+# can also do with pivot_wider:
 weather_df %>% 
   mutate(
     cold = case_when(
@@ -104,22 +128,16 @@ weather_df %>%
   summarize(count = n()) %>% 
   pivot_wider(
     names_from = "cold",
-    values_from = "n_obs") # fix this line
+    values_from = "count") 
 ```
+
 
 # General Summaries
 
-```{r}
-weather_df %>% 
-  group_by(name, month) %>% 
-  summarize(
-    n_obs =n(),
-    mean_tmax = mean(tmax)
-  )
-```
+We can compute standard statistical summaries (ie. mean, mode, median, standard deviation, variance, IQR, min, max, etc)
 
-
-```{r}
+```{r one variable} 
+# calculate n_obs in each month and for each month the mean_tmax, mean_precipitation, median_tmax, and sd_tmax.
 weather_df %>%
   group_by(month) %>%
   summarize(
@@ -130,22 +148,38 @@ weather_df %>%
     sd_tmax = sd(tmax))
 ```
 
-```{r}
-weather_df %>%
-  group_by(name, month) %>%
-  summarize(across(tmin:prcp, mean))
+We can also group by more than one variable:
+```{r more than one variable}
+weather_df %>% 
+  group_by(name, month) %>% 
+  summarize(
+    n_obs = n(),
+    mean_tmax = mean(tmax))
 ```
 
+If we want to summarize multiple columns using the same summary, the `across` function is a shortcut.
+```{r shortcut}
+weather_df %>%
+  group_by(name, month) %>%
+  summarize(across(tmin:prcp, mean)) # give the mean of variables from tmin to prcp.
+```
+
+The fact that `summarize()` produces a dataframe is important (and consistent with other functions in the `tidyverse`). You can incorporate grouping and summarizing within broader analysis pipelines. For example, we can create a plot based on the monthly summary:
 ```{r plot}
 weather_df %>%
   group_by(name, month) %>%
-  summarize(mean_tmax = mean(tmax, na.rm = TRUE)) %>%
+  summarize(mean_tmax = mean(tmax, na.rm = TRUE)) %>%  
+  # [na.rm = TRUE] will not include those missing values in calculation.
   ggplot(aes(x = month, y = mean_tmax, color = name)) + 
     geom_point() + geom_path() + 
     theme(legend.position = "bottom")
 ```
 
-### `knitr::kable()`
+
+## `knitr::kable()` 
+
+`knitr::kable()` presents dataframe in a human-readable format.
+
 ```{r create a nice looking dataframe}
 weather_df %>%
   group_by(name, month) %>%
@@ -153,12 +187,16 @@ weather_df %>%
   pivot_wider(
     names_from = name,
     values_from = mean_tmax) %>% 
-  knitr::kable(digits = 2)
+  knitr::kable(digits = 1)
 ```
+
 
 # Grouped `mutate`
 
-```{r}
+`Summarize` collapses groups into single data points. 
+In contrast, using `mutate()` in conjunction with `group_by()` will retain all original data points and **add** new variables computed within groups.
+
+```{r group mutate}
 weather_df %>%
   group_by(name) %>%
   mutate(
@@ -168,30 +206,102 @@ weather_df %>%
     geom_point() 
 ```
 
+
 # Window funtions
 
-Lagged observations
-```{r}
+Window functions take *n* number of inputs and return *n* number of outputs, and the outputs depend on all the inputs.
+
+##### Lagged observations
+
+Offsets, especially lags, are used to compare an observation to it’s previous value. This is useful, for example, to find the day-by-day change in max temperature within each station over the year:
+```{r lag}
 weather_df %>% 
   group_by(name) %>% 
   mutate(
     yesterday_tmax = lag(tmax),
-    tmax_change = tmax - yesterday_tmax) %>% 
+# Or instead of creating a new variable "yesterday_tmax", we can just do
+# temp_change = tmax - lag(tmax) 
+    temp_change = tmax - yesterday_tmax) %>%  
   summarize(
-    sd_tmax_change = sd(tmax_change, na.rm = TRUE))
+    sd_tmax_change = sd(temp_change, na.rm = TRUE),
+# To identify the largest one-day increase:
+    temp_change_max = max(temp_change, na.rm = TRUE))
 ```
 
-Ranking
-```{r}
+##### Ranking
+
+We can find the max temperature ranking within month, then keep only the day with the lowest max temperature within each month:
+```{r max rank}
 weather_df %>% 
   group_by(name, month) %>% 
   mutate(
-    tmax_rank = min_rank(tmax)) %>% 
-  filter(tmax_rank < 4) %>% 
-  arrange(name, month, tmax_rank)
+    temp_rank = min_rank(tmax)) %>%  # created a new variable "temp_rank" and give rank each row's tmax.
+  filter(temp_rank < 2) %>%  # keep only the day with the lowest temp within each month.
+  arrange(name, month, temp_rank) # arrange them in ascending order.
 ```
 
-```{r}
-
+We can also keep the three days with the highest max temperature in each month:
+```{r 3 day max temp}
+weather_df %>% 
+  group_by(name, month) %>% 
+  filter(min_rank(desc(tmax)) < 4)
 ```
+
+
+# Learning Assessment 1
+
+In the PULSE data, the primary outcome is BDI score; it’s observed over follow-up visits, and we might ask if the typical BDI score values are roughly similar at each. Try to write a code chunk that imports, cleans, and summarizes the PULSE data to examine the mean and median at each visit. Export the results of this in a reader-friendly format.
+```{r LA1}
+pulse_df =
+  haven::read_sas("Data/public_pulse_data.sas7bdat") %>% 
+  janitor::clean_names() %>% 
+  pivot_longer(
+    bdi_score_bl:bdi_score_12m,
+    names_to = "visit",
+    names_prefix = "bdi_score_", # removes the prefic "bdi_score_" from the variables being squeezed together.
+    values_to = "bdi") %>% 
+  mutate(
+    visit = replace(visit, visit == "bl", "00m"),
+    visit = factor(visit, levels = str_c(c("00", "01", "06", "12"), "m"))) %>%   # Join multiple strings into a single string
+  arrange(id, visit) 
+
+pulse_df %>% 
+  group_by(visit) %>% 
+  summarize(
+    mean_bdi = mean(bdi, na.rm = TRUE),
+    median_bdi = median(bdi, na.rm = TRUE)) %>% 
+  knitr::kable(digits = 2)
+```
+
+
+# Learning Assessment 2
+
+In the FAS data, there are several outcomes of interest; for now, focus on post-natal day on which a pup is able to pivot. Two predictors of interest are the dose level and the day of treatment. Produce a reader-friendly table that quantifies the possible associations between dose, day of treatment, and the ability to pivot.
+```{r LA2}
+pups_df = 
+  read_csv("Data/FAS_pups.csv") %>% 
+  janitor::clean_names() %>% 
+  mutate(
+    sex = recode(sex, `1` = "male", `2` = "female"))
+
+litter_df = 
+  read_csv("Data/FAS_litters.csv") %>%
+  janitor::clean_names() %>%
+  separate(group, into = c("dose", "day_of_tx"), sep = 3)
+# Separate "group" into two columns and separate after the 3rd characters.
+
+fas_df = left_join(pups_df, litter_df, by = "litter_number") 
+# Left join by pup_df because that is the main dataset we are focusing on.
+
+fas_df %>% 
+  group_by(dose, day_of_tx) %>% 
+  drop_na(dose) %>% 
+  summarize(
+    mean_pivot = mean(pd_pivot, na.rm = TRUE)) %>% 
+  pivot_wider(
+    names_from = dose, 
+    values_from = mean_pivot) %>% 
+  knitr::kable(digits = 3)
+```
+
 
